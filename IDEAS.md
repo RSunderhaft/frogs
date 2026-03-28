@@ -31,10 +31,12 @@
 
 ## 🗺️ Map & Stats Display
 
-- **Fix Leaflet + CARTO map rendering** — currently falling back to canvas
-  because Chrome MV3 blocks CDN scripts; Leaflet is bundled locally in
-  `libs/` but the tile images from `*.basemaps.cartocdn.com` need to be
-  verified in the CSP (`img-src`)
+- **Leaflet + CARTO map rendering** — currently using canvas fallback instead
+  of a real tile map. Leaflet is already bundled locally in `libs/` (CDN
+  references were removed after hitting MV3 CSP violations). Next step is to
+  re-wire `blocked.html` / `blocked.js` to use the local Leaflet build and
+  verify that CARTO tile images from `*.basemaps.cartocdn.com` load correctly
+  under the `img-src` CSP directive
 
 - **Satellite map style** — swap CARTO Dark Matter for a satellite tile layer
   so you can literally see the streets and terrain you ran on
@@ -85,6 +87,14 @@
 
 - **Publish to the Chrome Web Store** — requires resolving the credential
   exposure issue above and writing a store listing
+
+---
+
+## 🐛 Known Bugs
+
+- **"Disconnect Strava" button not working properly** — the disconnect action
+  may not be fully clearing tokens and/or re-engaging the block rule after
+  disconnecting; needs investigation and a fix
 
 ---
 

@@ -1,13 +1,16 @@
 // Instagram Hurdle — Service Worker
 // Blocks instagram.com until a 2+ mile run is logged on Strava today.
 
+// Load developer credentials from config.js (gitignored, never shipped to users)
+importScripts('config.js');
+
 const STRAVA_AUTH_URL = 'https://www.strava.com/oauth/authorize';
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
 const TWO_MILES_METERS = 3218.69;
 const BLOCK_RULE_ID = 1;
 
-// ─── Utilities ───────────────────────────────────────────────────────────────
+// ─── Utilities ────────────────────────────────────────────────────────────────
 
 function getTodayString() {
   const d = new Date();
@@ -59,13 +62,7 @@ async function removeBlockRule() {
 // ─── Strava Token Management ──────────────────────────────────────────────────
 
 async function getValidAccessToken() {
-  const data = await get([
-    'stravaAccessToken',
-    'stravaRefreshToken',
-    'stravaTokenExpiry',
-    'stravaClientId',
-    'stravaClientSecret'
-  ]);
+  const data = await get(['stravaAccessToken', 'stravaRefreshToken', 'stravaTokenExpiry']);
 
   if (!data.stravaAccessToken || !data.stravaRefreshToken) return null;
 
@@ -74,24 +71,20 @@ async function getValidAccessToken() {
     return data.stravaAccessToken;
   }
 
-  // Refresh
-  return refreshAccessToken(
-    data.stravaRefreshToken,
-    data.stravaClientId,
-    data.stravaClientSecret
-  );
+  // Refresh using baked-in credentials from config.js
+  return refreshAccessToken(data.stravaRefreshToken);
 }
 
-async function refreshAccessToken(refreshToken, clientId, clientSecret) {
+async function refreshAccessToken(refreshToken) {
   try {
     const resp = await fetch(STRAVA_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id:     STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
         refresh_token: refreshToken,
-        grant_type: 'refresh_token'
+        grant_type:    'refresh_token'
       })
     });
 
@@ -132,16 +125,15 @@ async function checkTodaysRun() {
 
     if (!qualifying) return { connected: true, hasRun: false };
 
-    // Extract only the fields we need so we don't store the full Strava payload
     const activity = {
-      id:                    qualifying.id,
-      name:                  qualifying.name,
-      distance:              qualifying.distance,
-      moving_time:           qualifying.moving_time,
-      total_elevation_gain:  qualifying.total_elevation_gain,
-      average_heartrate:     qualifying.average_heartrate || null,
-      start_date_local:      qualifying.start_date_local,
-      polyline:              qualifying.map?.summary_polyline || null
+      id:                   qualifying.id,
+      name:                 qualifying.name,
+      distance:             qualifying.distance,
+      moving_time:          qualifying.moving_time,
+      total_elevation_gain: qualifying.total_elevation_gain,
+      average_heartrate:    qualifying.average_heartrate || null,
+      start_date_local:     qualifying.start_date_local,
+      polyline:             qualifying.map?.summary_polyline || null
     };
 
     return { connected: true, hasRun: true, activity };
@@ -153,23 +145,23 @@ async function checkTodaysRun() {
 // ─── Core Enforcement Logic ───────────────────────────────────────────────────
 
 async function checkAndEnforceBlock() {
-  const data = await get(['unlockedDate', 'stravaClientId']);
   const today = getTodayString();
+  const data  = await get(['unlockedDate', 'stravaAccessToken', 'stravaRefreshToken']);
 
-  // Strava not configured yet
-  if (!data.stravaClientId) {
+  // No OAuth tokens yet — user needs to connect their Strava account
+  if (!data.stravaAccessToken && !data.stravaRefreshToken) {
     await addBlockRule();
-    return { status: 'not_configured' };
+    return { status: 'not_connected' };
   }
 
-  // Already unlocked today — no need to hit the API again
+  // Already unlocked today — skip the API call
   if (data.unlockedDate === today) {
     await removeBlockRule();
     const { lastRunActivity } = await get('lastRunActivity');
     return { status: 'unlocked', activity: lastRunActivity || null };
   }
 
-  // Check Strava for today's run
+  // Check Strava for a qualifying run today
   const result = await checkTodaysRun();
 
   if (result.hasRun) {
@@ -181,19 +173,17 @@ async function checkAndEnforceBlock() {
   await addBlockRule();
 
   if (!result.connected) return { status: 'not_connected' };
-  if (result.apiError) return { status: 'api_error' };
+  if (result.apiError)   return { status: 'api_error' };
   return { status: 'no_run' };
 }
 
 // ─── Strava OAuth ─────────────────────────────────────────────────────────────
+// No user credentials needed — uses the baked-in STRAVA_CLIENT_ID from config.js.
 
-async function connectStrava(clientId, clientSecret) {
-  // Save credentials first so they're available for token exchange
-  await set({ stravaClientId: clientId, stravaClientSecret: clientSecret });
-
+async function connectStrava() {
   const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org`;
   const authUrl = [
-    `${STRAVA_AUTH_URL}?client_id=${encodeURIComponent(clientId)}`,
+    `${STRAVA_AUTH_URL}?client_id=${encodeURIComponent(STRAVA_CLIENT_ID)}`,
     `redirect_uri=${encodeURIComponent(redirectUri)}`,
     'response_type=code',
     'approval_prompt=auto',
@@ -218,23 +208,20 @@ async function connectStrava(clientId, clientSecret) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            client_id: clientId,
-            client_secret: clientSecret,
+            client_id:     STRAVA_CLIENT_ID,
+            client_secret: STRAVA_CLIENT_SECRET,
             code,
             grant_type: 'authorization_code'
           })
         });
 
-        if (!resp.ok) {
-          reject('Token exchange failed');
-          return;
-        }
+        if (!resp.ok) { reject('Token exchange failed'); return; }
 
         const tokenData = await resp.json();
         await set({
-          stravaAccessToken: tokenData.access_token,
+          stravaAccessToken:  tokenData.access_token,
           stravaRefreshToken: tokenData.refresh_token,
-          stravaTokenExpiry: tokenData.expires_at
+          stravaTokenExpiry:  tokenData.expires_at
         });
 
         resolve(true);
@@ -264,20 +251,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       return true;
 
     case 'connect':
-      connectStrava(msg.clientId, msg.clientSecret)
+      connectStrava()
         .then(() => checkAndEnforceBlock())
         .then(result => sendResponse({ success: true, ...result }))
-        .catch(err => sendResponse({ success: false, error: String(err) }));
+        .catch(err  => sendResponse({ success: false, error: String(err) }));
       return true;
 
     case 'disconnect':
       disconnectStrava()
         .then(() => sendResponse({ success: true, status: 'not_connected' }))
-        .catch(err => sendResponse({ success: false, error: String(err) }));
+        .catch(err  => sendResponse({ success: false, error: String(err) }));
       return true;
 
     case 'checkAgain':
-      // Force re-check by clearing today's cached unlock, then re-enforce
       chrome.storage.local.remove(['unlockedDate', 'lastRunActivity'], () => {
         checkAndEnforceBlock().then(sendResponse);
       });

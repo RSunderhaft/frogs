@@ -16,13 +16,13 @@ function setStatus(cls, text) {
 }
 
 function showSection(id) {
-  ['setup-section', 'no-run-section', 'reconnect-section'].forEach(s =>
+  ['connect-section', 'no-run-section'].forEach(s =>
     $(s).classList.toggle('hidden', s !== id)
   );
 }
 
 function hideAllSections() {
-  ['setup-section', 'no-run-section', 'reconnect-section'].forEach(s =>
+  ['connect-section', 'no-run-section'].forEach(s =>
     $(s).classList.add('hidden')
   );
 }
@@ -267,20 +267,11 @@ function applyStatus(result) {
       break;
 
     case 'not_connected':
-      emoji.textContent    = '🔌';
+      emoji.textContent    = '🔗';
       title.textContent    = 'Connect Strava';
-      subtitle.textContent = 'Your Strava session expired. Reconnect to continue.';
-      setStatus('error', 'Not connected');
-      showSection('reconnect-section');
-      break;
-
-    case 'not_configured':
-      emoji.textContent    = '⚙️';
-      title.textContent    = 'Setup required';
-      subtitle.textContent = 'Connect your Strava account to get started.';
-      setStatus('checking', 'Not configured');
-      showSection('setup-section');
-      $('callback-domain').textContent = `${chrome.runtime.id}.chromiumapp.org`;
+      subtitle.textContent = 'Authorize once and you\'re all set.';
+      setStatus('checking', 'Not connected');
+      showSection('connect-section');
       break;
 
     case 'api_error':
@@ -319,22 +310,14 @@ $('check-btn').addEventListener('click', () => {
   });
 });
 
-// ─── Connect Strava (first-time setup) ───────────────────────────────────────
+// ─── Connect Strava ───────────────────────────────────────────────────────────
 
 $('connect-btn').addEventListener('click', () => {
-  const clientId     = $('client-id').value.trim();
-  const clientSecret = $('client-secret').value.trim();
-
-  if (!clientId || !clientSecret) {
-    alert('Please enter both your Strava Client ID and Client Secret.');
-    return;
-  }
-
   $('connect-btn').disabled = true;
   $('connect-btn').textContent = 'Connecting...';
   setStatus('checking', 'Connecting to Strava...');
 
-  chrome.runtime.sendMessage({ action: 'connect', clientId, clientSecret }, result => {
+  chrome.runtime.sendMessage({ action: 'connect' }, result => {
     $('connect-btn').disabled = false;
     $('connect-btn').textContent = 'Connect Strava';
 
@@ -345,21 +328,6 @@ $('connect-btn').addEventListener('click', () => {
     }
 
     applyStatus(result);
-  });
-});
-
-// ─── Reconnect (token expired) ────────────────────────────────────────────────
-
-$('reconnect-btn').addEventListener('click', () => {
-  chrome.storage.local.get(['stravaClientId', 'stravaClientSecret'], data => {
-    if (!data.stravaClientId) {
-      showSection('setup-section');
-      return;
-    }
-    chrome.runtime.sendMessage(
-      { action: 'connect', clientId: data.stravaClientId, clientSecret: data.stravaClientSecret },
-      result => { if (result?.success) applyStatus(result); }
-    );
   });
 });
 

@@ -187,42 +187,13 @@
     .btn-instagram { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); color: white; }
     .btn-secondary { background: #222; color: #ccc; border: 1px solid #333; }
 
-    /* ─── Setup form ─────────────────────────────────────── */
+    /* ─── Connect prompt ─────────────────────────────────── */
 
-    .setup-section {
-      margin-top: 24px;
-      text-align: left;
-    }
-
-    .setup-section label {
-      display: block;
-      font-size: 12px;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-      margin-top: 14px;
-    }
-
-    .setup-section input {
-      width: 100%;
-      padding: 11px 14px;
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 10px;
-      color: #f0f0f0;
+    .connect-hint {
       font-size: 14px;
-      outline: none;
-    }
-
-    .setup-section input:focus    { border-color: #fc4c02; }
-    .setup-section input::placeholder { color: #555; }
-
-    .strava-hint {
-      font-size: 12px;
-      color: #555;
-      margin-top: 10px;
-      line-height: 1.5;
+      color: #666;
+      margin-bottom: 16px;
+      line-height: 1.6;
     }
 
     .hidden { display: none !important; }
@@ -268,29 +239,15 @@
       <button class="btn btn-instagram" id="open-ig-btn">Open Instagram →</button>
     </div>
 
-    <!-- ── Strava not configured ──────────────────────────── -->
-    <div id="setup-section" class="hidden">
-      <div class="setup-section">
-        <p class="strava-hint">
-          Create an app at strava.com/settings/api. Set "Authorization Callback Domain" to:<br>
-          <strong id="callback-domain" style="color:#fc4c02; word-break:break-all;"></strong>
-        </p>
-        <label>Strava Client ID</label>
-        <input type="text"     id="client-id"     placeholder="e.g. 12345"      autocomplete="off" />
-        <label>Strava Client Secret</label>
-        <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
-      </div>
-      <button class="btn btn-primary" id="connect-btn" style="margin-top:16px;">Connect Strava</button>
+    <!-- ── Not connected ─────────────────────────────────── -->
+    <div id="connect-section" class="hidden">
+      <p class="connect-hint">Authorize the app to read your Strava activities.</p>
+      <button class="btn btn-primary" id="connect-btn">Connect Strava</button>
     </div>
 
     <!-- ── No run yet ─────────────────────────────────────── -->
     <div id="no-run-section" class="hidden">
       <button class="btn btn-secondary" id="check-btn">Check Again</button>
-    </div>
-
-    <!-- ── Token expired ──────────────────────────────────── -->
-    <div id="reconnect-section" class="hidden">
-      <button class="btn btn-primary" id="reconnect-btn">Reconnect Strava</button>
     </div>
 
   </div>

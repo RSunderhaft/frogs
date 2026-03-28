@@ -24,23 +24,16 @@ function applyStatus(result) {
       break;
 
     case 'no_run':
-      setStatusRow(stravaDot, stravaText, 'dot-green',  'Connected');
-      setStatusRow(runDot,    runText,    'dot-red',    'No qualifying run yet');
-      setStatusRow(igDot,     igText,     'dot-red',    'Blocked');
+      setStatusRow(stravaDot, stravaText, 'dot-green', 'Connected');
+      setStatusRow(runDot,    runText,    'dot-red',   'No qualifying run yet');
+      setStatusRow(igDot,     igText,     'dot-red',   'Blocked');
       showConnected();
       break;
 
     case 'not_connected':
-      setStatusRow(stravaDot, stravaText, 'dot-yellow', 'Token expired');
-      setStatusRow(runDot,    runText,    'dot-gray',   '—');
-      setStatusRow(igDot,     igText,     'dot-red',    'Blocked');
-      showSetup();
-      break;
-
-    case 'not_configured':
-      setStatusRow(stravaDot, stravaText, 'dot-gray',  'Not set up');
-      setStatusRow(runDot,    runText,    'dot-gray',  '—');
-      setStatusRow(igDot,     igText,     'dot-red',   'Blocked');
+      setStatusRow(stravaDot, stravaText, 'dot-gray', 'Not connected');
+      setStatusRow(runDot,    runText,    'dot-gray', '—');
+      setStatusRow(igDot,     igText,     'dot-red',  'Blocked');
       showSetup();
       break;
 
@@ -61,7 +54,6 @@ function applyStatus(result) {
 function showSetup() {
   $('setup-section').classList.add('visible');
   $('disconnect-section').style.display = 'none';
-  $('callback-domain').textContent = `${chrome.runtime.id}.chromiumapp.org`;
 }
 
 function showConnected() {
@@ -92,22 +84,14 @@ $('check-btn').addEventListener('click', () => {
 // ─── Connect Strava ───────────────────────────────────────────────────────────
 
 $('connect-btn').addEventListener('click', () => {
-  const clientId     = $('client-id').value.trim();
-  const clientSecret = $('client-secret').value.trim();
-
-  if (!clientId || !clientSecret) {
-    alert('Enter both your Client ID and Client Secret.');
-    return;
-  }
-
   $('connect-btn').disabled = true;
   $('connect-btn').textContent = 'Connecting...';
 
-  chrome.runtime.sendMessage({ action: 'connect', clientId, clientSecret }, result => {
+  chrome.runtime.sendMessage({ action: 'connect' }, result => {
     $('connect-btn').disabled = false;
     $('connect-btn').textContent = 'Connect Strava';
 
-    if (!result || !result.success) {
+    if (!result?.success) {
       alert(`Connection failed: ${result?.error || 'Unknown error'}`);
       return;
     }
@@ -125,11 +109,3 @@ $('disconnect-btn').addEventListener('click', () => {
     if (result?.success) applyStatus(result);
   });
 });
-
-// ─── Strava API link ──────────────────────────────────────────────────────────
-
-$('strava-api-link').addEventListener('click', e => {
-  e.preventDefault();
-  chrome.tabs.create({ url: 'https://www.strava.com/settings/api' });
-});
-

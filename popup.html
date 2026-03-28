@@ -193,20 +193,9 @@
 
   <div class="divider"></div>
 
-  <!-- Setup section (shown when not configured) -->
+  <!-- Setup section (shown when not connected) -->
   <div class="setup-section" id="setup-section">
-    <div class="hint">
-      Create a Strava app at <a href="#" id="strava-api-link">strava.com/settings/api</a>.<br>
-      Set "Authorization Callback Domain" to:<br>
-      <strong id="callback-domain"></strong>
-    </div>
-
-    <label>Client ID</label>
-    <input type="text" id="client-id" placeholder="e.g. 12345" autocomplete="off" />
-    <label>Client Secret</label>
-    <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
-
-    <button class="btn btn-strava" id="connect-btn" style="margin-top:12px;">
+    <button class="btn btn-strava" id="connect-btn">
       Connect Strava
     </button>
   </div>

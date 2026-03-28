@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Run First</title>
-  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <link href="libs/leaflet.css" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -112,7 +112,7 @@
     }
     .leaflet-control-attribution a { color: #666 !important; }
 
-    /* Canvas fallback (created dynamically when no polyline) */
+    /* Canvas fallback — shown when Leaflet is unavailable or no polyline */
     #map-container canvas {
       width: 100% !important;
       height: 100% !important;
@@ -295,7 +295,7 @@
 
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="libs/leaflet.js"></script>
   <script src="blocked.js"></script>
 </body>
 </html>

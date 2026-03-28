@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go Run First</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .emoji {
+      font-size: 64px;
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #888;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+
+    .status-badge.checking  { background: #1e1e1e; color: #888; border: 1px solid #333; }
+    .status-badge.no-run    { background: #1a1010; color: #f87171; border: 1px solid #3a1c1c; }
+    .status-badge.unlocked  { background: #0d1f0d; color: #4ade80; border: 1px solid #1a3d1a; }
+    .status-badge.error     { background: #1a1510; color: #fbbf24; border: 1px solid #3a2e1c; }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 10px;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #fc4c02; /* Strava orange */
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #222;
+      color: #ccc;
+      border: 1px solid #333;
+    }
+
+    .setup-section {
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .setup-section label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+
+    .setup-section input {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #f0f0f0;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .setup-section input:focus {
+      border-color: #fc4c02;
+    }
+
+    .setup-section input::placeholder {
+      color: #555;
+    }
+
+    .strava-hint {
+      font-size: 12px;
+      color: #555;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .hidden { display: none !important; }
+
+    #redirecting {
+      font-size: 14px;
+      color: #4ade80;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="emoji" id="emoji">🏃</span>
+    <h1 id="title">Not yet.</h1>
+    <p class="subtitle" id="subtitle">Log a run of at least 2 miles on Strava first, then come back.</p>
+
+    <div class="status-badge checking" id="status-badge">
+      <span class="dot"></span>
+      <span id="status-text">Checking...</span>
+    </div>
+
+    <!-- Shown when Strava is not configured -->
+    <div id="setup-section" class="setup-section hidden">
+      <label>Strava Client ID</label>
+      <input type="text" id="client-id" placeholder="e.g. 12345" autocomplete="off" />
+      <label>Strava Client Secret</label>
+      <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
+      <p class="strava-hint">
+        Create an app at strava.com/settings/api. Set the "Authorization Callback Domain" to<br>
+        <strong id="callback-domain" style="color:#fc4c02; word-break:break-all;"></strong>
+      </p>
+      <button class="btn btn-primary" id="connect-btn" style="margin-top:16px;">
+        Connect Strava
+      </button>
+    </div>
+
+    <!-- Shown when connected but no run yet -->
+    <div id="no-run-section" class="hidden">
+      <button class="btn btn-secondary" id="check-btn">Check Again</button>
+    </div>
+
+    <!-- Shown when connected but Strava auth expired -->
+    <div id="reconnect-section" class="hidden">
+      <button class="btn btn-primary" id="reconnect-btn">Reconnect Strava</button>
+    </div>
+
+    <p id="redirecting" class="hidden">Run verified! Redirecting to Instagram...</p>
+  </div>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

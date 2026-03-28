@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Hurdle</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      width: 300px;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .header-icon { font-size: 22px; }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub {
+      font-size: 11px;
+      color: #555;
+      margin-top: 1px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .status-value {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .dot-green  { background: #4ade80; }
+    .dot-red    { background: #f87171; }
+    .dot-yellow { background: #fbbf24; }
+    .dot-gray   { background: #555; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 11px 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-strava {
+      background: #fc4c02;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #1a1a1a;
+      color: #aaa;
+      border: 1px solid #2a2a2a;
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: #f87171;
+      border: 1px solid #3a1c1c;
+    }
+
+    .divider {
+      height: 1px;
+      background: #1e1e1e;
+      margin: 14px 0;
+    }
+
+    .setup-section { display: none; }
+    .setup-section.visible { display: block; }
+
+    .setup-section label {
+      display: block;
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 5px;
+      margin-top: 10px;
+    }
+
+    .setup-section input {
+      width: 100%;
+      padding: 9px 11px;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #f0f0f0;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .setup-section input:focus { border-color: #fc4c02; }
+    .setup-section input::placeholder { color: #444; }
+
+    .hint {
+      font-size: 11px;
+      color: #444;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .hint a { color: #fc4c02; text-decoration: none; }
+    .hint strong { color: #666; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-icon">🏃</span>
+    <div>
+      <div class="header-title">Instagram Hurdle</div>
+      <div class="header-sub">Run 2 miles to unlock Instagram</div>
+    </div>
+  </div>
+
+  <!-- Status rows -->
+  <div class="status-row">
+    <span class="status-label">Strava</span>
+    <span class="status-value" id="strava-status">
+      <span class="dot dot-gray"></span>
+      <span id="strava-status-text">Checking...</span>
+    </span>
+  </div>
+
+  <div class="status-row">
+    <span class="status-label">Today's run</span>
+    <span class="status-value" id="run-status">
+      <span class="dot dot-gray"></span>
+      <span id="run-status-text">Checking...</span>
+    </span>
+  </div>
+
+  <div class="status-row">
+    <span class="status-label">Instagram</span>
+    <span class="status-value" id="ig-status">
+      <span class="dot dot-gray"></span>
+      <span id="ig-status-text">Checking...</span>
+    </span>
+  </div>
+
+  <button class="btn btn-secondary" id="check-btn" style="margin-top:12px;">
+    Check Now
+  </button>
+
+  <div class="divider"></div>
+
+  <!-- Setup section (shown when not configured) -->
+  <div class="setup-section" id="setup-section">
+    <div class="hint">
+      Create a Strava app at <a href="#" id="strava-api-link">strava.com/settings/api</a>.<br>
+      Set "Authorization Callback Domain" to:<br>
+      <strong id="callback-domain"></strong>
+    </div>
+
+    <label>Client ID</label>
+    <input type="text" id="client-id" placeholder="e.g. 12345" autocomplete="off" />
+    <label>Client Secret</label>
+    <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
+
+    <button class="btn btn-strava" id="connect-btn" style="margin-top:12px;">
+      Connect Strava
+    </button>
+  </div>
+
+  <!-- Disconnect (shown when connected) -->
+  <div id="disconnect-section" style="display:none;">
+    <button class="btn btn-danger" id="disconnect-btn">Disconnect Strava</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

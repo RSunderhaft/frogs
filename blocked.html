@@ -15,6 +15,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px;
     }
 
     .card {
@@ -22,10 +23,12 @@
       border: 1px solid #2a2a2a;
       border-radius: 20px;
       padding: 48px 40px;
-      max-width: 460px;
-      width: 90%;
+      max-width: 520px;
+      width: 100%;
       text-align: center;
     }
+
+    /* ─── Header ─────────────────────────────────────────── */
 
     .emoji {
       font-size: 64px;
@@ -47,6 +50,8 @@
       margin-bottom: 32px;
     }
 
+    /* ─── Status badge ───────────────────────────────────── */
+
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -58,7 +63,7 @@
       margin-bottom: 28px;
     }
 
-    .status-badge.checking  { background: #1e1e1e; color: #888; border: 1px solid #333; }
+    .status-badge.checking  { background: #1e1e1e; color: #888;    border: 1px solid #333; }
     .status-badge.no-run    { background: #1a1010; color: #f87171; border: 1px solid #3a1c1c; }
     .status-badge.unlocked  { background: #0d1f0d; color: #4ade80; border: 1px solid #1a3d1a; }
     .status-badge.error     { background: #1a1510; color: #fbbf24; border: 1px solid #3a2e1c; }
@@ -69,6 +74,71 @@
       border-radius: 50%;
       background: currentColor;
     }
+
+    /* ─── Run display (shown on unlock) ─────────────────── */
+
+    #run-display {
+      display: none;
+      margin-top: 4px;
+      text-align: left;
+    }
+
+    #route-canvas {
+      width: 100%;
+      height: 220px;
+      border-radius: 14px;
+      background: #0c1a0c;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .run-name {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #1a1a1a;
+      border: 1px solid #252525;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f0f0f0;
+      line-height: 1;
+    }
+
+    .stat-unit {
+      font-size: 13px;
+      color: #666;
+      font-weight: 400;
+      margin-left: 2px;
+    }
+
+    /* ─── Buttons ────────────────────────────────────────── */
 
     .btn {
       display: block;
@@ -83,19 +153,14 @@
       margin-top: 10px;
     }
 
-    .btn:hover { opacity: 0.85; }
+    .btn:hover    { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-primary {
-      background: #fc4c02; /* Strava orange */
-      color: white;
-    }
+    .btn-primary   { background: #fc4c02; color: white; }
+    .btn-instagram { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); color: white; }
+    .btn-secondary { background: #222; color: #ccc; border: 1px solid #333; }
 
-    .btn-secondary {
-      background: #222;
-      color: #ccc;
-      border: 1px solid #333;
-    }
+    /* ─── Setup form ─────────────────────────────────────── */
 
     .setup-section {
       margin-top: 24px;
@@ -123,13 +188,8 @@
       outline: none;
     }
 
-    .setup-section input:focus {
-      border-color: #fc4c02;
-    }
-
-    .setup-section input::placeholder {
-      color: #555;
-    }
+    .setup-section input:focus    { border-color: #fc4c02; }
+    .setup-section input::placeholder { color: #555; }
 
     .strava-hint {
       font-size: 12px;
@@ -139,16 +199,12 @@
     }
 
     .hidden { display: none !important; }
-
-    #redirecting {
-      font-size: 14px;
-      color: #4ade80;
-      margin-top: 16px;
-    }
   </style>
 </head>
 <body>
   <div class="card">
+
+    <!-- ── Header ────────────────────────────────────────── -->
     <span class="emoji" id="emoji">🏃</span>
     <h1 id="title">Not yet.</h1>
     <p class="subtitle" id="subtitle">Log a run of at least 2 miles on Strava first, then come back.</p>
@@ -158,32 +214,58 @@
       <span id="status-text">Checking...</span>
     </div>
 
-    <!-- Shown when Strava is not configured -->
-    <div id="setup-section" class="setup-section hidden">
-      <label>Strava Client ID</label>
-      <input type="text" id="client-id" placeholder="e.g. 12345" autocomplete="off" />
-      <label>Strava Client Secret</label>
-      <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
-      <p class="strava-hint">
-        Create an app at strava.com/settings/api. Set the "Authorization Callback Domain" to<br>
-        <strong id="callback-domain" style="color:#fc4c02; word-break:break-all;"></strong>
-      </p>
-      <button class="btn btn-primary" id="connect-btn" style="margin-top:16px;">
-        Connect Strava
-      </button>
+    <!-- ── Run display (unlocked state) ──────────────────── -->
+    <div id="run-display">
+      <canvas id="route-canvas"></canvas>
+      <p class="run-name" id="run-name"></p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Distance</div>
+          <div class="stat-value" id="stat-distance">—<span class="stat-unit">mi</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pace</div>
+          <div class="stat-value" id="stat-pace">—<span class="stat-unit">/mi</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Time</div>
+          <div class="stat-value" id="stat-time">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Elevation</div>
+          <div class="stat-value" id="stat-elev">—<span class="stat-unit">ft</span></div>
+        </div>
+      </div>
+
+      <button class="btn btn-instagram" id="open-ig-btn">Open Instagram →</button>
     </div>
 
-    <!-- Shown when connected but no run yet -->
+    <!-- ── Strava not configured ──────────────────────────── -->
+    <div id="setup-section" class="hidden">
+      <div class="setup-section">
+        <p class="strava-hint">
+          Create an app at strava.com/settings/api. Set "Authorization Callback Domain" to:<br>
+          <strong id="callback-domain" style="color:#fc4c02; word-break:break-all;"></strong>
+        </p>
+        <label>Strava Client ID</label>
+        <input type="text"     id="client-id"     placeholder="e.g. 12345"      autocomplete="off" />
+        <label>Strava Client Secret</label>
+        <input type="password" id="client-secret" placeholder="Your app secret" autocomplete="off" />
+      </div>
+      <button class="btn btn-primary" id="connect-btn" style="margin-top:16px;">Connect Strava</button>
+    </div>
+
+    <!-- ── No run yet ─────────────────────────────────────── -->
     <div id="no-run-section" class="hidden">
       <button class="btn btn-secondary" id="check-btn">Check Again</button>
     </div>
 
-    <!-- Shown when connected but Strava auth expired -->
+    <!-- ── Token expired ──────────────────────────────────── -->
     <div id="reconnect-section" class="hidden">
       <button class="btn btn-primary" id="reconnect-btn">Reconnect Strava</button>
     </div>
 
-    <p id="redirecting" class="hidden">Run verified! Redirecting to Instagram...</p>
   </div>
 
   <script src="blocked.js"></script>

@@ -126,11 +126,25 @@ async function checkTodaysRun() {
     if (!resp.ok) return { connected: true, hasRun: false, apiError: true };
 
     const activities = await resp.json();
-    const hasRun = activities.some(
+    const qualifying = activities.find(
       a => (a.type === 'Run' || a.sport_type === 'Run') && a.distance >= TWO_MILES_METERS
     );
 
-    return { connected: true, hasRun };
+    if (!qualifying) return { connected: true, hasRun: false };
+
+    // Extract only the fields we need so we don't store the full Strava payload
+    const activity = {
+      id:                    qualifying.id,
+      name:                  qualifying.name,
+      distance:              qualifying.distance,
+      moving_time:           qualifying.moving_time,
+      total_elevation_gain:  qualifying.total_elevation_gain,
+      average_heartrate:     qualifying.average_heartrate || null,
+      start_date_local:      qualifying.start_date_local,
+      polyline:              qualifying.map?.summary_polyline || null
+    };
+
+    return { connected: true, hasRun: true, activity };
   } catch {
     return { connected: true, hasRun: false, apiError: true };
   }
@@ -151,16 +165,17 @@ async function checkAndEnforceBlock() {
   // Already unlocked today — no need to hit the API again
   if (data.unlockedDate === today) {
     await removeBlockRule();
-    return { status: 'unlocked' };
+    const { lastRunActivity } = await get('lastRunActivity');
+    return { status: 'unlocked', activity: lastRunActivity || null };
   }
 
   // Check Strava for today's run
   const result = await checkTodaysRun();
 
   if (result.hasRun) {
-    await set({ unlockedDate: today });
+    await set({ unlockedDate: today, lastRunActivity: result.activity });
     await removeBlockRule();
-    return { status: 'unlocked' };
+    return { status: 'unlocked', activity: result.activity || null };
   }
 
   await addBlockRule();
@@ -233,7 +248,7 @@ async function connectStrava(clientId, clientSecret) {
 async function disconnectStrava() {
   await new Promise(resolve =>
     chrome.storage.local.remove(
-      ['stravaAccessToken', 'stravaRefreshToken', 'stravaTokenExpiry', 'unlockedDate'],
+      ['stravaAccessToken', 'stravaRefreshToken', 'stravaTokenExpiry', 'unlockedDate', 'lastRunActivity'],
       resolve
     )
   );
@@ -263,7 +278,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     case 'checkAgain':
       // Force re-check by clearing today's cached unlock, then re-enforce
-      chrome.storage.local.remove('unlockedDate', () => {
+      chrome.storage.local.remove(['unlockedDate', 'lastRunActivity'], () => {
         checkAndEnforceBlock().then(sendResponse);
       });
       return true;

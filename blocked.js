@@ -185,11 +185,6 @@ function drawRouteOnCanvas(container, polyline) {
   ctx.fillStyle = '#fc4c02';
   ctx.fill();
 
-  // Hint to add a Mapbox token
-  const hint = document.createElement('p');
-  hint.className = 'map-token-hint';
-  hint.innerHTML = 'Add a Mapbox token in the extension popup for a real map background';
-  container.insertAdjacentElement('afterend', hint);
 }
 
 // ─── Stat formatters ──────────────────────────────────────────────────────────

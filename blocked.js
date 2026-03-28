@@ -28,6 +28,7 @@ function hideAllSections() {
 }
 
 // ─── Polyline decoder (Google encoded polyline algorithm) ─────────────────────
+// Used both for Mapbox (converts to GeoJSON) and canvas fallback.
 
 function decodePolyline(encoded) {
   const coords = [];
@@ -56,24 +57,69 @@ function decodePolyline(encoded) {
   return coords;
 }
 
-// ─── Canvas route renderer ────────────────────────────────────────────────────
+// ─── Leaflet + CARTO map ──────────────────────────────────────────────────────
 
-function drawRoute(canvas, polyline) {
-  if (!polyline) {
-    canvas.style.display = 'none';
-    return;
-  }
+function initLeafletMap(container, polyline) {
+  // Leaflet uses [lat, lng] natively — no coordinate flip needed
+  const coords = decodePolyline(polyline);
+
+  const map = L.map(container, { zoomControl: true });
+
+  // CARTO Dark Matter tiles — free, no API key
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
+      ' &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  // ── Route: glow underlay + sharp line on top ─────────
+  L.polyline(coords, {
+    color: '#4ade80',
+    weight: 10,
+    opacity: 0.15
+  }).addTo(map);
+
+  L.polyline(coords, {
+    color: '#4ade80',
+    weight: 3.5,
+    opacity: 1,
+    lineCap: 'round',
+    lineJoin: 'round'
+  }).addTo(map);
+
+  // ── Fit camera to route ───────────────────────────────
+  map.fitBounds(L.latLngBounds(coords), { padding: [40, 40] });
+
+  // ── Start marker (green circle) ───────────────────────
+  L.circleMarker(coords[0], {
+    radius: 7, fillColor: '#4ade80',
+    color: '#fff', weight: 2, fillOpacity: 1
+  }).addTo(map);
+
+  // ── End marker (Strava orange circle) ─────────────────
+  L.circleMarker(coords[coords.length - 1], {
+    radius: 7, fillColor: '#fc4c02',
+    color: '#fff', weight: 2, fillOpacity: 1
+  }).addTo(map);
+}
+
+// ─── Canvas fallback (used when no Mapbox token is set) ───────────────────────
+
+function drawRouteOnCanvas(container, polyline) {
+  // Create a canvas that fills the container
+  const canvas = document.createElement('canvas');
+  container.appendChild(canvas);
+
+  if (!polyline) return;
 
   const coords = decodePolyline(polyline);
-  if (coords.length < 2) {
-    canvas.style.display = 'none';
-    return;
-  }
+  if (coords.length < 2) return;
 
-  // Set pixel dimensions (account for Retina displays)
   const dpr = window.devicePixelRatio || 1;
-  const W   = canvas.offsetWidth  || 440;
-  const H   = canvas.offsetHeight || 220;
+  const W   = container.offsetWidth  || 440;
+  const H   = container.offsetHeight || 280;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
 
@@ -89,9 +135,8 @@ function drawRoute(canvas, polyline) {
   const latRange = maxLat - minLat || 0.001;
   const lngRange = maxLng - minLng || 0.001;
 
-  // Correct for the narrowing of longitude at higher latitudes (Mercator-ish)
-  const latMid    = (minLat + maxLat) / 2;
-  const lngScale  = Math.cos(latMid * Math.PI / 180);
+  const latMid      = (minLat + maxLat) / 2;
+  const lngScale    = Math.cos(latMid * Math.PI / 180);
   const adjLngRange = lngRange * lngScale;
 
   const pad    = 24;
@@ -109,19 +154,16 @@ function drawRoute(canvas, polyline) {
 
   // Background
   ctx.fillStyle = '#0c1a0c';
-  ctx.beginPath();
-  ctx.roundRect(0, 0, W, H, 14);
-  ctx.fill();
+  ctx.fillRect(0, 0, W, H);
 
-  // Route shadow (glow effect)
+  // Glow
   ctx.save();
-  ctx.shadowColor  = '#4ade80';
-  ctx.shadowBlur   = 8;
-  ctx.strokeStyle  = '#4ade80';
-  ctx.lineWidth    = 2.5;
-  ctx.lineJoin     = 'round';
-  ctx.lineCap      = 'round';
-
+  ctx.shadowColor = '#4ade80';
+  ctx.shadowBlur  = 8;
+  ctx.strokeStyle = '#4ade80';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
   ctx.beginPath();
   ctx.moveTo(toX(coords[0][1]), toY(coords[0][0]));
   for (let i = 1; i < coords.length; i++) {
@@ -130,22 +172,24 @@ function drawRoute(canvas, polyline) {
   ctx.stroke();
   ctx.restore();
 
-  // Start marker (green)
-  const sx = toX(coords[0][1]);
-  const sy = toY(coords[0][0]);
+  // Start dot (green)
   ctx.beginPath();
-  ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+  ctx.arc(toX(coords[0][1]), toY(coords[0][0]), 5, 0, Math.PI * 2);
   ctx.fillStyle = '#4ade80';
   ctx.fill();
 
-  // End marker (Strava orange)
+  // End dot (Strava orange)
   const last = coords[coords.length - 1];
-  const ex = toX(last[1]);
-  const ey = toY(last[0]);
   ctx.beginPath();
-  ctx.arc(ex, ey, 5, 0, Math.PI * 2);
+  ctx.arc(toX(last[1]), toY(last[0]), 5, 0, Math.PI * 2);
   ctx.fillStyle = '#fc4c02';
   ctx.fill();
+
+  // Hint to add a Mapbox token
+  const hint = document.createElement('p');
+  hint.className = 'map-token-hint';
+  hint.innerHTML = 'Add a Mapbox token in the extension popup for a real map background';
+  container.insertAdjacentElement('afterend', hint);
 }
 
 // ─── Stat formatters ──────────────────────────────────────────────────────────
@@ -182,7 +226,7 @@ function renderRunDisplay(activity) {
   if (!activity) return;
 
   // Run name + date
-  const date = new Date(activity.start_date_local);
+  const date    = new Date(activity.start_date_local);
   const dateStr = date.toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric'
   });
@@ -197,9 +241,13 @@ function renderRunDisplay(activity) {
   $('stat-elev').innerHTML =
     `${fmtElevation(activity.total_elevation_gain)}<span class="stat-unit">ft</span>`;
 
-  // Route map — wait one frame so the canvas has its CSS dimensions
-  const canvas = $('route-canvas');
-  requestAnimationFrame(() => drawRoute(canvas, activity.polyline));
+  // Map — use Leaflet + CARTO if a polyline is available, canvas fallback otherwise
+  const container = $('map-container');
+  if (activity.polyline && typeof L !== 'undefined') {
+    initLeafletMap(container, activity.polyline);
+  } else {
+    requestAnimationFrame(() => drawRouteOnCanvas(container, activity.polyline));
+  }
 }
 
 // ─── Status handler ───────────────────────────────────────────────────────────

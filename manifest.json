@@ -16,6 +16,10 @@
     "https://www.strava.com/*"
   ],
 
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src https://www.strava.com"
+  },
+
   "background": {
     "service_worker": "background.js"
   },

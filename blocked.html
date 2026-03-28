@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go Run First</title>
+  <link href="libs/leaflet.css" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -83,13 +84,39 @@
       text-align: left;
     }
 
-    #route-canvas {
+    #map-container {
       width: 100%;
-      height: 220px;
+      height: 280px;
       border-radius: 14px;
-      background: #0c1a0c;
-      display: block;
+      overflow: hidden;       /* clips Mapbox to the rounded corners */
       margin-bottom: 6px;
+      background: #0c1a0c;   /* shown briefly before tiles load */
+      position: relative;
+    }
+
+    /* ── Leaflet overrides for dark theme ───────────────── */
+
+    /* Zoom controls */
+    .leaflet-bar a {
+      background: #1e1e1e !important;
+      color: #aaa !important;
+      border-color: #333 !important;
+    }
+    .leaflet-bar a:hover { background: #2a2a2a !important; }
+
+    /* Attribution pill */
+    .leaflet-control-attribution {
+      background: rgba(20,20,20,0.75) !important;
+      color: #555 !important;
+      font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: #666 !important; }
+
+    /* Canvas fallback — shown when Leaflet is unavailable or no polyline */
+    #map-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
 
     .run-name {
@@ -216,7 +243,7 @@
 
     <!-- ── Run display (unlocked state) ──────────────────── -->
     <div id="run-display">
-      <canvas id="route-canvas"></canvas>
+      <div id="map-container"></div>
       <p class="run-name" id="run-name"></p>
 
       <div class="stat-grid">
@@ -268,6 +295,7 @@
 
   </div>
 
+  <script src="libs/leaflet.js"></script>
   <script src="blocked.js"></script>
 </body>
 </html>

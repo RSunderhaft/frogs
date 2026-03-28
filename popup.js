@@ -132,3 +132,4 @@ $('strava-api-link').addEventListener('click', e => {
   e.preventDefault();
   chrome.tabs.create({ url: 'https://www.strava.com/settings/api' });
 });
+
